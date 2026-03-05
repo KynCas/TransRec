@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TransRec System - Login</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header-bar">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="logo.png" alt="CCSMPC Logo" style="height: 36px;">
+      <strong>TransRec System</strong>
+    </div>
+    <div><a href="#" id="loginLink" class="hidden">← Back to Roles</a></div>
+  </div>
+  
+  <main>
+    <section id="roleSelect" class="panel" style="max-width: 900px; margin: 40px auto;">
+      <h2 style="text-align: center; border: none; padding-bottom: 0; margin-bottom: 32px;">Welcome to TransRec</h2>
+      <p style="text-align: center; font-size: 1.05rem; margin-bottom: 32px;">Select your role to get started</p>
+      <div class="roles">
+        <div class="role-card" data-role="student">
+          <div style="margin-bottom: 12px;"><span class="solid-icon icon-student" aria-hidden="true"></span></div>
+          <strong>Student</strong><br>
+          <small>Track your transfer credits and progress</small>
+        </div>
+        <div class="role-card" data-role="teacher">
+          <div style="margin-bottom: 12px;"><span class="solid-icon icon-teacher" aria-hidden="true"></span></div>
+          <strong>Teacher</strong><br>
+          <small>Manage student submissions</small>
+        </div>
+        <div class="role-card" data-role="registrar">
+          <div style="margin-bottom: 12px;"><span class="solid-icon icon-registrar" aria-hidden="true"></span></div>
+          <strong>Registrar</strong><br>
+          <small>Monitor all student progress</small>
+        </div>
+      </div>
+    </section>
+
+    <section id="loginSection" class="panel hidden" style="max-width: 500px; margin: 40px auto;">
+      <h2 id="loginHeading" style="text-align: center; border: none; padding-bottom: 0; margin-bottom: 24px;">Sign In</h2>
+      <form id="authForm">
+        <label>
+          Email Address
+          <input type="email" id="email" placeholder="you@example.com" required>
+        </label>
+        <label>
+          Password
+          <input type="password" id="password" placeholder="••••••••" required>
+        </label>
+        <div id="actions">
+          <button type="button" data-action="login">🔓 Login</button>
+          <button type="button" data-action="signup">✏️ Sign Up</button>
+        </div>
+      </form>
+      <div id="msg"></div>
+    </section>
+  </main>
+
+  <footer>
+    <p>TransRec © 2026 | Streamlining Student Record Transfer</p>
+  </footer>
+
+  <script>
+    const roleSelect = document.getElementById('roleSelect');
+    const loginSection = document.getElementById('loginSection');
+    const loginLink = document.getElementById('loginLink');
+    const authForm = document.getElementById('authForm');
+    const msgEl = document.getElementById('msg');
+    const actions = document.getElementById('actions');
+
+    let selectedRole = 'student';
+
+    document.querySelectorAll('.role-card').forEach(card => {
+      card.addEventListener('click', e => {
+        // visual feedback
+        document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+
+        selectedRole = e.currentTarget.dataset.role;
+        document.getElementById('loginHeading').textContent = `Sign in as ${selectedRole}`;
+        animateSwitch(roleSelect, loginSection);
+      });
+    });
+
+    loginLink.addEventListener('click', e => {
+      e.preventDefault();
+      animateSwitch(loginSection, roleSelect);
+      document.querySelectorAll('.role-card').forEach(c => c.classList.remove('active'));
+    });
+
+    function animateSwitch(fromEl, toEl){
+      fromEl.classList.add('panel-exit');
+      toEl.classList.remove('hidden');
+      toEl.classList.add('panel-enter');
+      setTimeout(()=>{
+        fromEl.classList.add('hidden');
+        fromEl.classList.remove('panel-exit');
+        toEl.classList.remove('panel-enter');
+      }, 360);
+    }
+
+    async function post(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      
+      // Check if response is OK
+      if (!r.ok) {
+        throw new Error(`Server error: ${r.status} ${r.statusText}`);
+      }
+      
+      // Get response text first to handle empty responses
+      const text = await r.text();
+      if (!text) {
+        throw new Error('Empty response from server');
+      }
+      
+      try {
+        return JSON.parse(text);
+      } catch (err) {
+        throw new Error('Invalid JSON response from server');
+      }
+    }
+
+    // handle Enter key (form submit) and button clicks
+    authForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      await handleAuth('login');
+    });
+
+    actions.addEventListener('click', async (e) => {
+      const act = e.target.dataset.action;
+      if (!act) return;
+      await handleAuth(act);
+    });
+
+    async function handleAuth(act){
+      const email = document.getElementById('email').value.trim();
+      const password = document.getElementById('password').value;
+      clearMsg();
+      if(!email || !password){ showMsg('Please enter both email and password', 'error'); return; }
+
+      try{
+        if(act === 'login'){
+          const resp = await post('/api/login', { email, password });
+          if(resp && resp.role){
+            // small success animation then redirect
+            showMsg('Login successful — redirecting...', 'success');
+            setTimeout(()=> window.location = '/' + resp.role + '.html', 700);
+          } else if(resp && resp.error) {
+            showMsg(resp.error, 'error');
+          } else {
+            showMsg('Invalid credentials or unexpected server response', 'error');
+          }
+        } else if(act === 'signup'){
+          const resp = await post('/api/signup', { email, password, role: selectedRole, name: '' });
+          if(resp && resp.success) {
+            showMsg('Signed up! Please sign in.', 'success');
+            setTimeout(()=> animateSwitch(loginSection, roleSelect), 900);
+          } else if(resp && resp.error) {
+            showMsg(resp.error, 'error');
+          } else {
+            showMsg('Signup failed', 'error');
+          }
+        }
+      } catch(err){
+        console.error('Auth error:', err);
+        showMsg('Error: ' + (err.message || 'Connection failed'), 'error');
+      }
+    }
+
+    function showMsg(text, type='success'){
+      msgEl.className = '';
+      msgEl.textContent = text;
+      msgEl.classList.add('alert');
+      if(type === 'error') msgEl.classList.add('error');
+      msgEl.classList.add('show');
+      setTimeout(()=> msgEl.classList.remove('show'), 3500);
+    }
+
+    function clearMsg(){
+      msgEl.className = '';
+      msgEl.textContent = '';
+    }
+  </script>
+</body>
+</html>

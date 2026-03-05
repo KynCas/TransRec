@@ -1,0 +1,6 @@
+services:
+  transrecweb:
+    image: transrecweb
+    build:
+      context: .
+      dockerfile: ./Dockerfile

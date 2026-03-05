@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>TransRec - Student Transfer Records System</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="header-bar">
+    <div style="display: flex; align-items: center; gap: 12px;">
+      <img src="logo.png" alt="CCSMPC Logo" style="height: 36px;">
+      <strong>TransRec System</strong>
+    </div>
+    <nav>
+      <a href="/login.html">🔐 Login</a>
+    </nav>
+  </div>
+
+  <main>
+    <section class="panel" style="max-width: 1000px; margin: 40px auto;">
+      <div style="text-align: center; margin-bottom: 40px;">
+        <h1 style="font-size: 2.2rem; margin-bottom: 12px;">Welcome to TransRec</h1>
+        <p style="font-size: 1.1rem; color: var(--text-secondary);">A modern student transfer credit tracking system</p>
+      </div>
+
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 24px; margin-bottom: 32px;">
+        <div style="padding: 24px; background: linear-gradient(135deg, #e7fff0 0%, #d3f9e7 100%); border-radius: 8px; border-left: 4px solid var(--success);">
+            <div class="solid-icon icon-student dim" style="margin-bottom:12px; display:inline-block;"></div>
+            <h3 style="border: none; padding: 0; margin-bottom: 8px;">For Students</h3>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">Track your transfer credits in real-time and monitor your application progress.</p>
+        </div>
+
+        <div style="padding: 24px; background: linear-gradient(135deg, #fff3d6 0%, #ffeccc 100%); border-radius: 8px; border-left: 4px solid var(--warning);">
+          <div class="solid-icon icon-teacher dim" style="margin-bottom:12px; display:inline-block;"></div>
+          <h3 style="border: none; padding: 0; margin-bottom: 8px;">For Teachers</h3>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">Manage student submissions and mark requirements as complete.</p>
+        </div>
+
+        <div style="padding: 24px; background: linear-gradient(135deg, #ddf4ff 0%, #cce5ff 100%); border-radius: 8px; border-left: 4px solid var(--info);">
+          <div class="solid-icon icon-registrar dim" style="margin-bottom:12px; display:inline-block;"></div>
+          <h3 style="border: none; padding: 0; margin-bottom: 8px;">For Registrars</h3>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">Monitor system analytics and verify all student requirements.</p>
+        </div>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 32px;">
+        <h2 style="border: none; padding-bottom: 0; margin-bottom: 24px;">Key Features</h2>
+        <ul style="list-style: none; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; text-align: left;">
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Real-time Updates</strong><br><small>Socket.io powered live notifications</small></li>
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Progress Tracking</strong><br><small>Visual progress bars and timelines</small></li>
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Role-Based Access</strong><br><small>Student, teacher, and registrar portals</small></li>
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Responsive Design</strong><br><small>Works on desktop, tablet, and mobile</small></li>
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Deadline Management</strong><br><small>Track important application deadlines</small></li>
+          <li style="padding: 12px; background: var(--bg); border-radius: 6px;"><strong>✓ Status Verification</strong><br><small>Multi-level approval workflow</small></li>
+        </ul>
+      </div>
+
+      <div style="text-align: center;">
+        <h2 style="border: none; padding-bottom: 0; margin-bottom: 20px;">Get Started</h2>
+        <a href="/login.html" style="display: inline-block; background: linear-gradient(135deg, var(--primary-dark) 0%, var(--primary) 100%); color: #fff; padding: 16px 32px; border-radius: 8px; font-weight: 600; text-decoration: none; font-size: 1.1rem; transition: all 0.3s ease;">
+          🔓 Login to Your Account →
+        </a>
+        <p style="margin-top: 16px; color: var(--text-secondary);">
+          Don't have an account? <a href="/login.html">Sign up here</a>
+        </p>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>TransRec © 2026 | Streamlining Student Record Transfer</p>
+    <p style="font-size: 0.9rem; margin-top: 12px;">Secure • Efficient • Transparent</p>
+  </footer>
+</body>
+</html>

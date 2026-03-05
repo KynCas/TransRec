@@ -1,0 +1,47 @@
+# Ignore Node.js modules
+node_modules/
+package-lock.json
+
+# Ignore environment variables
+.env
+.env.local
+.env.*.local
+
+# Ignore IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Ignore OS files
+Thumbs.db
+.DS_Store
+
+# Ignore local uploads and logs
+uploads/
+logs/
+*.log
+
+# Ignore test databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Ignore backup files
+*.backup
+*.bak
+*-backup.js
+
+# Ignore Docker
+.dockerignore
+docker-compose.override.yml
+
+# Ignore FTP package (already on production server)
+ftp-deploy/
+
+# Keep important server files tracked
+!server.js
+!migrate.js
+!package.json

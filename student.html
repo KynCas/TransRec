@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Student Portal - TransRec</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header style="display: flex; align-items: center; gap: 12px;">
+    <img src="logo.png" alt="CCSMPC Logo" style="height: 36px;">
+    <h1><span class="solid-icon small icon-student" aria-hidden="true" style="margin-right:8px; vertical-align: middle;"></span> Student Portal</h1>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>Your Application Status</h2>
+      <div id="overview" style="margin-bottom: 20px;"></div>
+      
+      <div id="progressSection" style="margin-bottom: 24px;">
+        <h3>Overall Progress</h3>
+        <div class="progress" style="height: 32px; margin-top: 12px;">
+          <div id="progressBar" class="progress-bar" style="width: 0%"></div>
+          <small id="progressText" style="font-size: 1rem;">0%</small>
+        </div>
+      </div>
+
+      <h3>Status Updates</h3>
+      <div id="statusUpdates" style="margin-top: 12px;">
+        <div style="padding: 16px; background: var(--primary-100); border-radius: 6px; border-left: 4px solid var(--primary);">
+          <p style="margin: 0 0 12px 0;"><strong>Your application is being processed.</strong></p>
+          <p style="margin: 0; color: var(--text-secondary); font-size: 0.95rem;">We will notify you of any updates. Check back regularly for progress.</p>
+        </div>
+      </div>
+
+      <h3 style="margin-top: 24px;">📅 Timeline</h3>
+      <ul id="timeline" class="timeline"></ul>
+    </section>
+  </main>
+
+  <footer>
+    <a href="#" id="logout">🚪 Logout</a>
+    <p style="margin-top: 12px;">Need help? Contact registrar@institution.edu</p>
+  </footer>
+
+  <script>
+    async function get(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Server error: ${r.status}`);
+      const text = await r.text();
+      if (!text) throw new Error('Empty response from server');
+      return JSON.parse(text);
+    }
+
+    async function init() {
+      try {
+        const me = await get('/api/me');
+        if (me.role !== 'student') {
+          window.location = '/login.html';
+          return;
+        }
+        
+        const studs = await get('/api/students');
+        if (studs.length) {
+          display(studs[0]);
+        }
+      } catch (err) {
+        console.error('Error loading student data:', err);
+      }
+    }
+
+    function display(s) {
+      // Overview
+      const overviewHtml = `
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px;">
+          <div style="padding: 12px; background: var(--bg); border-radius: 6px;">
+            <small style="color: var(--text-muted);">Name</small>
+            <p style="font-weight: 600; font-size: 1.1rem; margin: 0;">${s.name}</p>
+          </div>
+          <div style="padding: 12px; background: var(--bg); border-radius: 6px;">
+            <small style="color: var(--text-muted);">Student ID</small>
+            <p style="font-weight: 600; font-size: 1.1rem; margin: 0;">${s.student_id || 'N/A'}</p>
+          </div>
+          <div style="padding: 12px; background: var(--bg); border-radius: 6px;">
+            <small style="color: var(--text-muted);">Deadline</small>
+            <p style="font-weight: 600; font-size: 1.1rem; margin: 0;">${new Date(s.deadline).toLocaleDateString()}</p>
+          </div>
+          <div style="padding: 12px; background: var(--bg); border-radius: 6px;">
+            <small style="color: var(--text-muted);">Status</small>
+            <p style="font-weight: 600; font-size: 1.1rem; margin: 0; color: var(--success);">📤 Active</p>
+          </div>
+        </div>
+      `;
+      document.getElementById('overview').innerHTML = overviewHtml;
+
+      // Progress calculation
+      const completed = s.requirements.filter(r => r.status === 'Complete' || r.status === 'Verified').length;
+      const total = s.requirements.length;
+      const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+      document.getElementById('progressBar').style.width = pct + '%';
+      document.getElementById('progressText').textContent = pct + '%';
+
+      // Status label based on progress
+      let statusLabel = 'Pending';
+      let statusColor = 'var(--warning)';
+      if (pct === 100) {
+        statusLabel = 'Approved';
+        statusColor = 'var(--success)';
+      } else if (pct >= 50) {
+        statusLabel = 'In Review';
+        statusColor = 'var(--primary)';
+      } else if (pct > 0) {
+        statusLabel = 'For Completion';
+        statusColor = 'var(--accent)';
+      }
+
+      // Update overview with status label
+      const overviewEl = document.getElementById('overview');
+      const children = overviewEl.querySelectorAll('div');
+      if (children.length >= 4) {
+        children[3].innerHTML = `<small style="color: var(--text-muted);">Status</small><p style="font-weight: 600; font-size: 1.1rem; margin: 0; color: ${statusColor};">● ${statusLabel}</p>`;
+      }
+
+      // Timeline
+      fetch(`/api/students/${s.id}/timeline`)
+        .then(r => r.json())
+        .then(t => {
+          const ul = document.getElementById('timeline');
+          ul.innerHTML = '';
+          if (!t || t.length === 0) {
+            ul.innerHTML = '<li style="padding: 12px; text-align: center; color: var(--text-muted);">No timeline events yet</li>';
+            return;
+          }
+          t.forEach(ev => {
+            const li = document.createElement('li');
+            li.innerHTML = `<strong>${ev.stage}</strong> — ${new Date(ev.date).toLocaleDateString()}`;
+            ul.appendChild(li);
+          });
+        })
+        .catch(err => {
+          console.error('Error loading timeline:', err);
+          document.getElementById('timeline').innerHTML = '<li style="color: var(--text-danger);">Error loading timeline</li>';
+        });
+    }
+
+    document.getElementById('logout').addEventListener('click', async e => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location = '/login.html';
+    });
+
+    init();
+  </script>
+</body>
+</html>

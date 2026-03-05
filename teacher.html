@@ -1,0 +1,341 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Teacher Dashboard - TransRec</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header style="display: flex; align-items: center; gap: 12px;">
+    <img src="logo.png" alt="CCSMPC Logo" style="height: 36px;">
+    <h1><span class="solid-icon small icon-teacher" aria-hidden="true" style="margin-right:8px; vertical-align: middle;"></span> Teacher Dashboard</h1>
+  </header>
+
+  <main>
+    <section class="panel">
+      <h2>� Notifications</h2>
+      <div id="notifications" style="margin-bottom: 24px;">
+        <div style="padding: 12px; background: var(--primary-100); border-left: 4px solid var(--primary); border-radius: 6px; color: var(--text-secondary);">
+          <small>No new notifications at this time</small>
+        </div>
+      </div>
+
+      <h2>�📋 Pending Assignments</h2>
+      <div id="alerts" class="alerts"></div>
+      
+      <table id="assignTable">
+        <thead>
+          <tr>
+            <th>Student Name</th>
+            <th>Student ID</th>
+            <th>Requirement</th>
+            <th style="width: 120px;">Status</th>
+            <th style="width: 140px;">Document</th>
+            <th style="width: 100px;">Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">Loading...</td></tr>
+        </tbody>
+      </table>
+
+      <div style="margin-top: 28px; display: flex; gap: 24px; align-items: flex-start;">
+        <div style="flex:1">
+          <h3 style="margin-bottom: 12px;">Add New Transfer Student</h3>
+          <p style="margin-top:0; color:var(--text-secondary);">Enter student information to create a new record</p>
+        </div>
+
+        <form id="addStudentForm" style="flex: 1 1 640px; background: var(--bg); padding: 18px; border-radius: 8px; box-shadow: var(--shadow-sm);">
+          <fieldset style="border: none; padding: 0; margin: 0 0 12px 0;">
+            <legend style="font-weight:600; margin-bottom:12px;">Student Information</legend>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <label style="display:block">
+                Full Name *
+                <input type="text" id="stu_fullname" placeholder="Juan Dela Cruz" required>
+              </label>
+
+              <label style="display:block">
+                Student ID
+                <input type="text" id="stu_student_id" placeholder="2024-0001">
+              </label>
+
+              <label style="display:block">
+                Email Address *
+                <input type="email" id="stu_email" placeholder="student@example.com" required>
+              </label>
+
+              <label style="display:block">
+                Phone Number
+                <input type="tel" id="stu_phone" placeholder="+63 912 345 6789">
+              </label>
+
+              <label style="display:block">
+                Grade Level *
+                <select id="stu_grade" required>
+                  <option value="">Select grade</option>
+                  <option>Grade 7</option>
+                  <option>Grade 8</option>
+                  <option>Grade 9</option>
+                  <option>Grade 10</option>
+                  <option>Grade 11</option>
+                  <option>Grade 12</option>
+                </select>
+              </label>
+
+              <label style="display:block">
+                Section
+                <input type="text" id="stu_section" placeholder="e.g. St. Joseph, Section A">
+              </label>
+
+              <label style="display:block">
+                Application Date *
+                <input type="date" id="stu_appdate" required>
+              </label>
+
+              <label style="display:block">
+                Previous School *
+                <input type="text" id="stu_prevschool" placeholder="Name of previous school" required>
+              </label>
+
+              <label style="display:block; grid-column: 1 / -1;">
+                Notes
+                <textarea id="stu_notes" placeholder="Any additional notes or comments..." rows="4"></textarea>
+              </label>
+            </div>
+          </fieldset>
+
+          <div style="display:flex; gap:12px; margin-top:12px;">
+            <button type="submit" style="background: linear-gradient(90deg, #1e8f4a 0%, #1b8a49 100%); color:#fff; padding:10px 16px; border-radius:6px; border:none; font-weight:600;">📥 Create Student Record</button>
+            <button type="button" id="cancelAdd" style="background:transparent; border:1px solid #ddd; padding:10px 16px; border-radius:6px;">✖ Cancel</button>
+          </div>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <a href="#" id="logout">🚪 Logout</a>
+    <p style="margin-top: 12px;">Last updated: <span id="lastUpdate">Now</span></p>
+  </footer>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    async function get(url) {
+      const r = await fetch(url);
+      if (!r.ok) throw new Error(`Server error: ${r.status}`);
+      const text = await r.text();
+      if (!text) throw new Error('Empty response from server');
+      return JSON.parse(text);
+    }
+
+    async function post(url, body) {
+      const r = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body)
+      });
+      if (!r.ok) throw new Error(`Server error: ${r.status}`);
+      const text = await r.text();
+      if (!text) throw new Error('Empty response from server');
+      return JSON.parse(text);
+    }
+
+    function showAlert(message, type = 'success') {
+      const el = document.createElement('div');
+      el.className = 'alert' + (type === 'error' ? ' error' : '');
+      el.innerHTML = (type === 'success' ? '✓ ' : '✗ ') + message;
+      document.getElementById('alerts').appendChild(el);
+      setTimeout(() => el.remove(), 5000);
+    }
+
+    async function load() {
+      try {
+        const me = await get('/api/me');
+        if (me.role !== 'teacher') {
+          window.location = '/login.html';
+          return;
+        }
+
+        const studs = await get('/api/students');
+        const tbody = document.querySelector('#assignTable tbody');
+        tbody.innerHTML = '';
+
+        let hasAssignments = false;
+
+        studs.forEach(s => {
+          s.requirements
+            .filter(r => r.status !== 'Complete' && r.status !== 'Verified')
+            .forEach(r => {
+              hasAssignments = true;
+              const tr = document.createElement('tr');
+              const statusIcon = r.status === 'Pending' ? '⏳' : '📝';
+              tr.innerHTML = `
+                <td><strong>${s.name}</strong></td>
+                <td>${s.student_id || 'N/A'}</td>
+                <td>${r.name}</td>
+                <td><span class="status-pending">${statusIcon} ${r.status}</span></td>
+                <td>
+                  <input type="file" class="docUpload" data-sid="${s.id}" data-rid="${r.id}" style="font-size:0.8rem; padding:4px;">
+                </td>
+                <td><button class="markBtn" data-sid="${s.id}" data-rid="${r.id}" style="width: 100%; padding: 6px 8px; font-size: 0.85rem;">✓ Mark Done</button></td>
+              `;
+              tbody.appendChild(tr);
+            });
+        });
+
+        if (!hasAssignments) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 24px;">✓ All assignments are complete!</td></tr>';
+        }
+
+        document.querySelectorAll('.markBtn').forEach(btn => {
+          btn.addEventListener('click', async e => {
+            const sid = e.target.dataset.sid;
+            const rid = e.target.dataset.rid;
+            try {
+              await post(`/api/students/${sid}/submit`, { requirementId: rid });
+              showAlert('Assignment marked as complete');
+              load();
+            } catch (err) {
+              showAlert('Error marking assignment', 'error');
+            }
+          });
+        });
+
+        // Document upload handler
+        document.querySelectorAll('.docUpload').forEach(input => {
+          input.addEventListener('change', async e => {
+            const file = e.target.files[0];
+            if (!file) return;
+            
+            const formData = new FormData();
+            formData.append('file', file);
+            formData.append('studentId', e.target.dataset.sid);
+            formData.append('requirementId', e.target.dataset.rid);
+            
+            try {
+              const r = await fetch('/api/upload', {
+                method: 'POST',
+                body: formData
+              });
+              const result = await r.json();
+              if (result.success) {
+                showAlert(`✓ Document "${file.name}" uploaded successfully`);
+                e.target.value = '';
+              } else {
+                showAlert('Error uploading document', 'error');
+              }
+            } catch (err) {
+              showAlert('Error uploading document', 'error');
+            }
+          });
+        });
+
+        document.getElementById('lastUpdate').textContent = new Date().toLocaleTimeString();
+      } catch (err) {
+        console.error('Error loading assignments:', err);
+        showAlert('Error loading data', 'error');
+      }
+    }
+
+    function displayNotifications() {
+      // Simulated notifications from registrar
+      // In a real system, these would come from the backend via WebSocket
+      const notifEl = document.getElementById('notifications');
+      notifEl.innerHTML = `
+        <div style="padding: 12px; background: var(--primary-100); border-left: 4px solid var(--primary); border-radius: 6px;">
+          <small style="color: var(--text-secondary);">ℹ You have no missing document alerts at this time</small>
+        </div>
+      `;
+    }
+
+    // Socket.io real-time updates
+    const socket = io();
+    socket.on('studentAdded', () => {
+      showAlert('New student added');
+      load();
+    });
+    socket.on('studentUpdated', () => {
+      load();
+    });
+    socket.on('alert', a => showAlert(a.message, 'info'));
+
+    // Student creation UI removed; no client-side handler required
+    // Add Student form handler
+    (function(){
+      const form = document.getElementById('addStudentForm');
+      const cancel = document.getElementById('cancelAdd');
+      if (!form) return;
+
+      // set today's date as default for application date
+      const appDate = document.getElementById('stu_appdate');
+      if (appDate && !appDate.value) {
+        const d = new Date();
+        const iso = d.toISOString().slice(0,10);
+        appDate.value = iso;
+      }
+
+      form.addEventListener('submit', async e => {
+        e.preventDefault();
+        const name = document.getElementById('stu_fullname').value.trim();
+        const studentId = document.getElementById('stu_student_id').value.trim();
+        const email = document.getElementById('stu_email').value.trim();
+        const phone = document.getElementById('stu_phone').value.trim();
+        const grade = document.getElementById('stu_grade').value;
+        const section = document.getElementById('stu_section').value.trim();
+        const applicationDate = document.getElementById('stu_appdate').value;
+        const prevSchool = document.getElementById('stu_prevschool').value.trim();
+        const notes = document.getElementById('stu_notes').value.trim();
+
+        if (!name || !email || !grade || !applicationDate || !prevSchool) {
+          showAlert('Please fill in required fields', 'error');
+          return;
+        }
+
+        try {
+          const payload = {
+            name,
+            student_id: studentId || undefined,
+            email: email || undefined,
+            phone: phone || undefined,
+            grade: grade || undefined,
+            section: section || undefined,
+            application_date: applicationDate || undefined,
+            previous_school: prevSchool || undefined,
+            notes: notes || undefined
+          };
+
+          await post('/api/students', payload);
+          showAlert('Student created successfully');
+          form.reset();
+          if (appDate) appDate.value = new Date().toISOString().slice(0,10);
+          load();
+        } catch (err) {
+          console.error('Error creating student', err);
+          showAlert('Error creating student', 'error');
+        }
+      });
+
+      cancel.addEventListener('click', () => {
+        form.reset();
+        if (appDate) appDate.value = new Date().toISOString().slice(0,10);
+      });
+    })();
+    document.getElementById('logout').addEventListener('click', async e => {
+      e.preventDefault();
+      await fetch('/api/logout', { method: 'POST' });
+      window.location = '/login.html';
+    });
+
+    load();
+
+    // Refresh data every 30 seconds
+    setInterval(load, 30000);
+
+    // Display notifications on load
+    displayNotifications();
+    setInterval(displayNotifications, 60000);
+  </script>
+</body>
+</html>
